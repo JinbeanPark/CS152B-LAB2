@@ -7,7 +7,7 @@ module traffic_controller(clk, reset, req, ss, ml, sl, wl);
 	
     reg [2:0] state;
     reg sensorState;
-	reg wlReg;
+	reg wrReg, wlReg; // walk request register and walk light register
 	reg [1:0] mlReg, slReg;
     integer secs; // passed seconds
     parameter [2:0] mlGreen = 3'b000;   // Main light is green & Side light is red
@@ -16,10 +16,17 @@ module traffic_controller(clk, reset, req, ss, ml, sl, wl);
     parameter [2:0] slYellow = 3'b011;  // Side light is Yellow & Main light is red
     parameter [2:0] wlOn = 3'b100;  // Walk light is green
     
+    // async reset
     always @(posedge reset) begin
         state = mlGreen;
         sensorState = 0;
         secs = 0;
+        wrReg = 0;
+    end
+
+    // async button
+    always @(posedge req) begin
+        wrReg = 1;
     end
 
     always @(posedge clk) begin
@@ -41,7 +48,8 @@ module traffic_controller(clk, reset, req, ss, ml, sl, wl);
             mlYellow: begin
                 if (secs == 2) begin
                     secs = 0;
-                    state = req == 1'b1 ? wlOn : slGreen;
+                    state = wrReg == 1'b1 ? wlOn : slGreen;
+                    wrReg = 0;
                 end
             end
             slGreen: begin
